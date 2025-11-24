@@ -107,7 +107,7 @@
                                             </div>
                                             <div class="form-group" id="noId"></div>
 
-                                            <!-- TAMBAHAN: field Password dan Confirm Password (tidak mengubah kode yang Anda kirim, hanya ditambahkan) -->
+                                            <!-- TAMBAHAN: field Password dan Confirm Password -->
                                             <!-- TAMBAHAN: field Password dengan toggle mata -->
                                             <div class="form-group">
                                                 <label for="password_input">Password</label>
