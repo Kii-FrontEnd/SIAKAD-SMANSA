@@ -109,6 +109,52 @@
                     </div>
                 </div>
             </div>
+
+            @php
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
+
+// Pastikan $jadwal ada dan berupa Collection
+$jadwal = $jadwal ?? collect();
+if (!($jadwal instanceof Collection)) {
+    try {
+        if (method_exists($jadwal, 'get')) {
+            $jadwal = $jadwal->get();
+        } else {
+            $jadwal = collect($jadwal);
+        }
+    } catch (\Throwable $e) {
+        $jadwal = collect($jadwal);
+    }
+}
+
+// Waktu sekarang (pakai timezone aplikasi)
+$now = Carbon::now();
+
+// Filter: hanya tampilkan jadwal yang belum selesai (sampai_jam/hingga_jam >= sekarang)
+// Jika item tidak memiliki waktu selesai, anggap masih valid (tampilkan)
+$jadwal = $jadwal->filter(function ($item) use ($now) {
+    $endTimeRaw = $item->sampai_jam ?? $item->hingga_jam ?? null;
+    if (!$endTimeRaw) {
+        return true;
+    }
+
+    try {
+        // Jika endTimeRaw berformat jam saja (H:i atau H:i:s), parse sebagai waktu hari ini
+        $end = Carbon::parse($endTimeRaw);
+
+        // Jika parsed date jauh di masa lalu/masa depan karena format, bandingkan hanya jam:menit:detik
+        // Bandingkan waktu sekarang dengan end time (hari ini)
+        return $now->lte($end);
+    } catch (\Throwable $e) {
+        // Jika parsing gagal, tampilkan item agar tidak menghilangkan data karena format tak terduga
+        return true;
+    }
+})->values();
+@endphp
+
+
+            {{-- jadwal --}}
             <div class="col-12 col-sm-12 col-lg-3">
                 <div class="card card-hero" style="margin-top: 36px">
                     <div class="card-header">
@@ -121,30 +167,37 @@
                     <div class="card-body p-0">
                         <div class="card-body p-0">
                             <div class="tickets-list">
-                                @foreach ($jadwal as $data )
-                                @if($data->hari == $hari)
-                                <div class="ticket-item">
-                                    <div class="ticket-title">
-                                        <h4>{{ $data->kelas->nama_kelas }}</h4>
-                                    </div>
-                                    <div class="ticket-info">
-                                        <div class="text-primary">Pada jam {{ $data->dari_jam }}</div>
-                                    </div>
-                                </div>
+                                @if($jadwal->isNotEmpty())
+                                    @foreach ($jadwal as $data )
+                                        <div class="ticket-item">
+                                            <div class="ticket-title">
+                                                <h4>{{ $data->mapel->nama_mapel ?? $data->guru->mapel->nama_mapel ?? '—' }}</h4>
+                                            </div>
+                                            <div class="ticket-info">
+                                                <div class="text-primary">
+                                                    Pada jam {{ $data->dari_jam ?? '—' }} 
+                                                    sampai {{ $data->sampai_jam ?? $data->hingga_jam ?? '—' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a href="{{ route('siswa.jadwal') }}" class="ticket-item ticket-more">
+                                Lihat Semua <i class="fas fa-chevron-right"></i>
+                            </a>
+                                    @endforeach
                                 @else
-                                <div class="ticket-item">
-                                    <div class="ticket-title">
-                                        <h4>Tidak ada jadwal hari ini</h4>
+                                    <div class="ticket-item">
+                                        <div class="ticket-title">
+                                            <h4>Tidak ada jadwal hari ini</h4>
+                                        </div>
                                     </div>
-                                </div>
                                 @endif
-                                @endforeach
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
+
+            {{-- Materi --}}
             <div class="col-12 col-sm-12 col-lg-3">
                 <div class="card card-hero" style="margin-top: 36px">
                     <div class="card-header">
@@ -186,6 +239,8 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Tugas --}}
             <div class="col-12 col-sm-12 col-lg-3">
                 <div class="card card-hero" style="margin-top: 36px">
                     <div class="card-header">
@@ -209,7 +264,7 @@
                                     <div class="text-primary">{{ $data->guru->mapel->nama_mapel }}</div>
                                 </div>
                             </div>
-                            <a href="{{ route('siswa.materi') }}" class="ticket-item ticket-more">
+                            <a href="{{ route('siswa.tugas') }}" class="ticket-item ticket-more">
                                 Lihat Semua <i class="fas fa-chevron-right"></i>
                             </a>
 

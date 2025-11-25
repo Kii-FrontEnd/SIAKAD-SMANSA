@@ -12,9 +12,9 @@
     @include('includes.style')
 </head>
 
-<body style="background-color: #6e6e76;
-background: radial-gradient(circle, transparent 20%, #6e6e76 20%, #6e6e76 80%, transparent 80%, transparent), radial-gradient(circle, transparent 20%, #6e6e76 20%, #6e6e76 80%, transparent 80%, transparent) 10px 10px, linear-gradient(#0008a4 0.8px, transparent 0.8px) 0 -0.4px, linear-gradient(90deg, #0008a4 0.8px, #6e6e76 0.8px) -0.4px 0;
-background-size: 20px 20px, 20px 20px, 10px 10px, 10px 10px;">
+<body style="background-color: #e5e5f7;
+background: radial-gradient(circle, transparent 20%, #e5e5f7 20%, #e5e5f7 80%, transparent 80%, transparent), radial-gradient(circle, transparent 20%, #e5e5f7 20%, #e5e5f7 80%, transparent 80%, transparent) 17.5px 17.5px, linear-gradient(#0008a7 1.4000000000000001px, transparent 1.4000000000000001px) 0 -0.7000000000000001px, linear-gradient(90deg, #0008a7 1.4000000000000001px, #e5e5f7 1.4000000000000001px) -0.7000000000000001px 0;
+background-size: 35px 35px, 35px 35px, 17.5px 17.5px, 17.5px 17.5px;">
     <div id="app">
         <section class="section">
             <div class="container mt-5">

@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\Mapel;
+use App\Models\Siswa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class JadwalController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource (admin).
      *
      * @return \Illuminate\Http\Response
      */
@@ -29,7 +32,7 @@ class JadwalController extends Controller
      */
     public function create()
     {
-        //
+        // 
     }
 
     /**
@@ -80,7 +83,7 @@ class JadwalController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing the specified resource (admin).
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
@@ -91,13 +94,13 @@ class JadwalController extends Controller
         $mapel = Mapel::orderBy('nama_mapel', 'desc')->get();
         $kelas = Kelas::orderBy('nama_kelas', 'desc')->get();
 
-        $hari = ['senin', 'selasa', 'rabu', 'kamis', 'jumat'];
+        $hari = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
 
         return view('pages.admin.jadwal.edit', compact('jadwal', 'mapel', 'kelas', 'hari'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the specified resource in storage (admin).
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
@@ -114,7 +117,7 @@ class JadwalController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified resource from storage (admin).
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
@@ -122,8 +125,72 @@ class JadwalController extends Controller
     public function destroy($id)
     {
         $jadwal = Jadwal::find($id);
-        $jadwal->delete();
+        if ($jadwal) {
+            $jadwal->delete();
+        }
 
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus');
+    }
+
+    /**
+     * Display jadwal for the logged-in siswa (siswa view).
+     * Mirip dengan MateriController::siswa — ambil siswa berdasarkan Auth user,
+     * ambil kelasnya, ambil jadwal untuk kelas tersebut dan kirim ke view siswa.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function siswa()
+    {
+        // Ambil siswa berdasarkan nis dari user yang sedang login
+        $siswa = Siswa::where('nis', Auth::user()->nis)->first();
+
+        if (!$siswa) {
+            return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
+        }
+
+        // Ambil kelas siswa
+        $kelas = Kelas::findOrFail($siswa->kelas_id);
+
+        // Ambil semua jadwal untuk kelas tersebut
+        $jadwal = Jadwal::where('kelas_id', $kelas->id)->get();
+
+        // Opsional: filter jadwal hanya untuk hari ini agar otomatis menampilkan jadwal hari ini
+        $now = Carbon::now();
+        $hari_en = $now->format('l'); // Monday, Tuesday, ...
+        $mapHari = [
+            'Monday'    => 'Senin',
+            'Tuesday'   => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday'  => 'Kamis',
+            'Friday'    => 'Jumat',
+            'Saturday'  => 'Sabtu',
+            'Sunday'    => 'Minggu',
+        ];
+        $hari_id = $mapHari[$hari_en] ?? $hari_en;
+
+        // Filter jadwal untuk hari ini (cocokkan nama hari Indonesia atau Inggris)
+        $jadwal = $jadwal->filter(function ($item) use ($hari_id, $hari_en) {
+            if (!isset($item->hari)) return false;
+            $itemHari = trim((string) $item->hari);
+            return strcasecmp($itemHari, $hari_id) === 0 || strcasecmp($itemHari, $hari_en) === 0;
+        })->values();
+
+        // Hapus jadwal yang sudah selesai (opsional): jika sampai_jam tersedia dan sudah lewat, hilangkan
+        $nowTime = Carbon::now();
+        $jadwal = $jadwal->filter(function ($item) use ($nowTime) {
+            $endTimeRaw = $item->sampai_jam ?? $item->hingga_jam ?? null;
+            if (!$endTimeRaw) {
+                return true;
+            }
+            try {
+                $end = Carbon::parse($endTimeRaw);
+                return $nowTime->lte($end);
+            } catch (\Throwable $e) {
+                return true;
+            }
+        })->values();
+
+        // Kirim data ke view siswa jadwal (buat view pages.siswa.jadwal.index jika belum ada)
+        return view('pages.siswa.jadwal.index', compact('jadwal', 'kelas'));
     }
 }

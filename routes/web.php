@@ -46,6 +46,7 @@ Route::group(['middleware' => ['auth', 'checkRole:guru']], function () {
     Route::resource('materi', MateriController::class);
     Route::resource('tugas', TugasController::class);
     Route::get('/jawaban-download/{id}', [TugasController::class, 'downloadJawaban'])->name('guru.jawaban.download');
+
 });
 Route::group(['middleware' => ['auth', 'checkRole:siswa']], function () {
     Route::get('/siswa/dashboard', [HomeController::class, 'siswa'])->name('siswa.dashboard');
@@ -54,6 +55,7 @@ Route::group(['middleware' => ['auth', 'checkRole:siswa']], function () {
     Route::get('/siswa/tugas', [TugasController::class, 'siswa'])->name('siswa.tugas');
     Route::get('/tugas-download/{id}', [TugasController::class, 'download'])->name('siswa.tugas.download');
     Route::post('/kirim-jawaban', [TugasController::class, 'kirimJawaban'])->name('kirim-jawaban');
+    Route::get('/siswa/jadwal', [JadwalController::class, 'siswa'])->name('siswa.jadwal');
 });
 Route::group(['middleware' => ['auth', 'checkRole:orangtua']], function () {
     Route::get('/orangtua/dashboard', [HomeController::class, 'orangtua'])->name('orangtua.dashboard');

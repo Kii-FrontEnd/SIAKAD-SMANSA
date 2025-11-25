@@ -5,7 +5,7 @@
             <a href="{{ route('admin.dashboard') }}">{{ $pengaturan->name ?? config('app.name') }}</a>
         </div>
         <div class="sidebar-brand sidebar-brand-sm">
-            <a href="#">{{ strtoupper(substr(config('app.name'), 0, 2)) }}</a>
+            <a href="{{ route('admin.dashboard') }}"><img src="{{ URL::asset($pengaturan->logo) ?? 'https://via.placeholder.com/300' }}" alt="" style="width: 40px; margin-top: 10px;"></a>
         </div>
         <ul class="sidebar-menu">
             @if (Auth::check() && Auth::user()->roles == 'admin')
@@ -40,6 +40,7 @@
             <li class="{{ request()->routeIs('siswa.dashboard.*') ? 'active' : '' }}"><a class="nav-link" href="{{ route('siswa.dashboard') }}"><i class="fas fa-columns"></i> <span>Dashboard</span></a></li>
             <li class="{{ request()->routeIs('materi.*') ? 'active' : '' }}"><a class="nav-link" href="{{ route('siswa.materi') }}"><i class="fas fa-book"></i> <span>Materi</span></a></li>
             <li class="{{ request()->routeIs('tugas.*') ? 'active' : '' }}"><a class="nav-link" href="{{ route('siswa.tugas') }}"><i class="fas fa-list"></i> <span>Tugas</span></a></li>
+            <li class="{{ request()->routeIs('jadwal.*') ? 'active' : '' }}"><a class="nav-link" href="{{ route('siswa.jadwal') }}"><i class="fas fa-list"></i> <span>Jadwal</span></a></li>
 
             @else
             <li class="{{ request()->routeIs('orangtua.dashboard.*') ? 'active' : '' }}"><a class="nav-link" href="{{ route('orangtua.dashboard') }}"><i class="fas fa-columns"></i> <span>Dashboard</span></a></li>

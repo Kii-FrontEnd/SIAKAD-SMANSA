@@ -4,7 +4,8 @@
 @section('content')
     <section class="section">
         <div class="section-header">
-            <h1>Dashboard</h1>
+            <h1>Selamat datang {{ Auth::user()->name }}{{ isset($orangtua) && $orangtua->siswas->isNotEmpty() ? ' Orangtua dari : '.
+            $orangtua->siswas->pluck('nama')->join(', ') : '' }}</h1>
         </div>
 
         <div class="section-body">
@@ -119,7 +120,121 @@
                         </div>
                     </div>
                 </div>
-                {{-- <div class="col-12 col-sm-12 col-lg-3">
+
+                @php
+                use Illuminate\Support\Collection;
+                use Illuminate\Support\Str;
+
+                // Pastikan $orangtua tersedia
+                $orangtua = $orangtua ?? null;
+
+                // Siapkan koleksi siswa dari orangtua agar aman digunakan di view
+                $siswaCollection = collect();
+                if ($orangtua && isset($orangtua->siswas)) {
+                    $siswaCollection = collect($orangtua->siswas);
+                }
+
+                // Siapkan daftar nama siswa (digabung) untuk header
+                $siswaNames = $siswaCollection->pluck('nama')->filter()->values();
+                $siswaNamesText = $siswaNames->isNotEmpty() ? $siswaNames->join(', ') : null;
+
+                // Ambil daftar kelas id dari siswa orangtua (untuk filter jadwal/materi/tugas)
+                $kelasIds = $siswaCollection->pluck('kelas_id')->filter()->unique()->values()->all();
+
+                // Helper untuk memastikan Collection
+                $ensureCollection = function ($value) {
+                    if ($value instanceof Collection) return $value;
+                    if (is_null($value)) return collect();
+                    if (is_array($value)) return collect($value);
+                    // Jika Eloquent Builder, ambil get()
+                    try {
+                        if (method_exists($value, 'get')) return $value->get();
+                    } catch (\Throwable $e) {}
+                    return collect($value);
+                };
+
+                // Pastikan variabel jadwal, materi, tugas ada dan berupa collection.
+                // Jika tidak dikirim dari controller, coba ambil berdasarkan kelas siswa orangtua.
+                // Semua operasi aman (try/catch) agar tidak memunculkan error di view.
+
+                // 1) Jadwal
+                if (!isset($jadwal) || is_null($jadwal)) {
+                    if (!empty($kelasIds)) {
+                        try {
+                            $jadwal = \App\Models\Jadwal::whereIn('kelas_id', $kelasIds)->get();
+                        } catch (\Throwable $e) {
+                            $jadwal = collect();
+                        }
+                    } else {
+                        $jadwal = collect();
+                    }
+                } else {
+                    $jadwal = $ensureCollection($jadwal);
+                    if (!empty($kelasIds)) {
+                        $jadwal = $jadwal->filter(function ($item) use ($kelasIds) {
+                            $kelasId = $item->kelas_id ?? ($item->kelas->id ?? null);
+                            return in_array($kelasId, $kelasIds);
+                        })->values();
+                    }
+                }
+
+                // 2) Materi
+                if (!isset($materi) || is_null($materi)) {
+                    if (!empty($kelasIds)) {
+                        try {
+                            $materi = \App\Models\Materi::whereIn('kelas_id', $kelasIds)->get();
+                        } catch (\Throwable $e) {
+                            $materi = collect();
+                        }
+                    } else {
+                        $materi = collect();
+                    }
+                } else {
+                    $materi = $ensureCollection($materi);
+                    if (!empty($kelasIds)) {
+                        $materi = $materi->filter(function ($item) use ($kelasIds) {
+                            $kelasId = $item->kelas_id ?? ($item->kelas->id ?? null);
+                            return in_array($kelasId, $kelasIds);
+                        })->values();
+                    }
+                }
+
+                // 3) Tugas
+                if (!isset($tugas) || is_null($tugas)) {
+                    if (!empty($kelasIds)) {
+                        try {
+                            $tugas = \App\Models\Tugas::whereIn('kelas_id', $kelasIds)->get();
+                        } catch (\Throwable $e) {
+                            $tugas = collect();
+                        }
+                    } else {
+                        $tugas = collect();
+                    }
+                } else {
+                    $tugas = $ensureCollection($tugas);
+                    if (!empty($kelasIds)) {
+                        $tugas = $tugas->filter(function ($item) use ($kelasIds) {
+                            $kelasId = $item->kelas_id ?? ($item->kelas->id ?? null);
+                            return in_array($kelasId, $kelasIds);
+                        })->values();
+                    }
+                }
+
+                // Siapkan variabel hari (mis. 'Senin', 'Selasa', dsb.) jika belum ada
+                $hari = $hari ?? null;
+
+                // Filter jadwal untuk hari ini jika $hari tersedia
+                if ($hari) {
+                    $jadwalHariIni = $jadwal->filter(function ($item) use ($hari) {
+                        return isset($item->hari) && $item->hari == $hari;
+                    })->values();
+                } else {
+                    $jadwalHariIni = collect();
+                }
+            @endphp
+
+                {{-- jadwal Mapel --}}
+                <div class="col-12 col-sm-12 col-lg-3">
                     <div class="card card-hero" style="margin-top: 36px">
                         <div class="card-header">
                             <div class="card-icon">
@@ -131,30 +246,34 @@
                         <div class="card-body p-0">
                             <div class="card-body p-0">
                                 <div class="tickets-list">
-                                    @foreach ($jadwal as $data)
-                                        @if ($data->hari == $hari)
+                                    @if($jadwal->isNotEmpty())
+                                        @foreach ($jadwal as $data )
                                             <div class="ticket-item">
                                                 <div class="ticket-title">
-                                                    <h4>{{ $data->kelas->nama_kelas }}</h4>
+                                                    <h4>{{ $data->mapel->nama_mapel ?? $data->guru->mapel->nama_mapel ?? '—' }}</h4>
                                                 </div>
                                                 <div class="ticket-info">
-                                                    <div class="text-primary">Pada jam {{ $data->dari_jam }}</div>
+                                                    <div class="text-primary">
+                                                        Pada jam {{ $data->dari_jam ?? '—' }} 
+                                                        sampai {{ $data->sampai_jam ?? $data->hingga_jam ?? '—' }}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        @else
-                                            <div class="ticket-item">
-                                                <div class="ticket-title">
-                                                    <h4>Tidak ada jadwal hari ini</h4>
-                                                </div>
+                                        @endforeach
+                                    @else
+                                        <div class="ticket-item">
+                                            <div class="ticket-title">
+                                                <h4>Tidak ada jadwal hari ini</h4>
                                             </div>
-                                        @endif
-                                    @endforeach
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
+
+                {{-- Materi 
                 <div class="col-12 col-sm-12 col-lg-3">
                     <div class="card card-hero" style="margin-top: 36px">
                         <div class="card-header">
@@ -166,34 +285,37 @@
                         </div>
                         <div class="card-body p-0">
                             <div class="tickets-list">
-                                @foreach ($materi as $data)
-                                    @if ($data->count() > 0)
+                                @if($materi->isNotEmpty())
+                                    @foreach ($materi as $data)
                                         <div class="ticket-item">
                                             <div class="ticket-title">
-                                                <h4>{{ $data->judul }}</h4>
+                                                <h4>{{ $data->judul ?? 'Judul tidak tersedia' }}</h4>
                                             </div>
                                             <div class="ticket-info">
-                                                <div>{{ $data->guru->nama }}</div>
+                                                <div>{{ $data->guru->nama ?? 'Guru tidak tersedia' }}</div>
                                                 <div class="bullet"></div>
-                                                <div class="text-primary">{{ $data->guru->mapel->nama_mapel }}</div>
+                                                <div class="text-primary">{{ $data->guru->mapel->nama_mapel ?? 'Mapel tidak tersedia' }}</div>
                                             </div>
                                         </div>
-                                        <a href="{{ route('siswa.materi') }}" class="ticket-item ticket-more">
-                                            Lihat Semua <i class="fas fa-chevron-right"></i>
-                                        </a>
-                                    @else
-                                        <div class="ticket-item">
-                                            <div class="ticket-title">
-                                                <h4>Tidak ada materi tersedia</h4>
-                                            </div>
+                                    @endforeach
+
+                                    <a href="{{ route('siswa.materi') }}" class="ticket-item ticket-more">
+                                        Lihat Semua <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                @else
+                                    <div class="ticket-item">
+                                        <div class="ticket-title">
+                                            <h4>Tidak ada materi tersedia</h4>
                                         </div>
-                                    @endif
-                                @endforeach
+                                    </div>
+                                @endif
 
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> --}}
+
+                {{-- Tugas --}}
                 <div class="col-12 col-sm-12 col-lg-3">
                     <div class="card card-hero" style="margin-top: 36px">
                         <div class="card-header">
@@ -205,35 +327,35 @@
                         </div>
                         <div class="card-body p-0">
                             <div class="tickets-list">
-                                @foreach ($tugas as $data)
-                                    @if ($data->count() > 0)
+                                @if($tugas->isNotEmpty())
+                                    @foreach ($tugas as $data)
                                         <div class="ticket-item">
                                             <div class="ticket-title">
-                                                <h4>{{ $data->judul }}</h4>
+                                                <h4>{{ $data->judul ?? 'Judul tidak tersedia' }}</h4>
                                             </div>
                                             <div class="ticket-info">
-                                                <div>{{ $data->guru->nama }}</div>
+                                                <div>{{ $data->guru->nama ?? 'Guru tidak tersedia' }}</div>
                                                 <div class="bullet"></div>
-                                                <div class="text-primary">{{ $data->guru->mapel->nama_mapel }}</div>
+                                                <div class="text-primary">{{ $data->guru->mapel->nama_mapel ?? 'Mapel tidak tersedia' }}</div>
                                             </div>
                                         </div>
-                                        <a href="{{ route('siswa.materi') }}" class="ticket-item ticket-more">
-                                            Lihat Semua <i class="fas fa-chevron-right"></i>
-                                        </a>
-                                    @else
-                                        <div class="ticket-item">
-                                            <div class="ticket-title">
-                                                <h4>Tidak ada tugas</h4>
-                                            </div>
+                                    @endforeach
+
+                                    <a href="{{ route('orangtua.tugas.siswa') }}" class="ticket-item ticket-more">
+                                        Lihat Semua <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                @else
+                                    <div class="ticket-item">
+                                        <div class="ticket-title">
+                                            <h4>Tidak ada tugas</h4>
                                         </div>
-                                    @endif
-                                @endforeach
+                                    </div>
+                                @endif
 
                             </div>
                         </div>
                     </div>
-                </div> --}}
-
+                </div>
             </div>
         </div>
     </section>

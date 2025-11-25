@@ -9,7 +9,7 @@
 
     <div class="section-body">
         <div class="row ">
-            {{-- Jadwal --}}
+            {{-- jadwal --}}
             <div class="col-12 col-sm-12 col-lg-4">
                 <div class="card card-hero">
                     <div class="card-header">
@@ -21,24 +21,27 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="tickets-list">
-                            @foreach ($jadwal as $data )
-                            @if($data->hari == $hari)
-                            <div class="ticket-item">
-                                <div class="ticket-title">
-                                    <h4>{{ $data->kelas->nama_kelas }}</h4>
-                                </div>
-                                <div class="ticket-info">
-                                    <div class="text-primary">Pada jam {{ $data->dari_jam }}</div>
-                                </div>
-                            </div>
+                            @if($jadwal->isNotEmpty())
+                                @foreach ($jadwal as $data )
+                                    <div class="ticket-item">
+                                        <div class="ticket-title">
+                                            <h4>{{ $data->kelas->nama_kelas ?? '—' }}</h4>
+                                        </div>
+                                        <div class="ticket-info">
+                                            <div class="text-primary">
+                                                Pada jam {{ $data->dari_jam ?? '—' }} 
+                                                sampai {{ $data->sampai_jam ?? $data->hingga_jam ?? '—' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
                             @else
-                            <div class="ticket-item">
-                                <div class="ticket-title">
-                                    <h4>Tidak ada jadwal mengajar hari ini</h4>
+                                <div class="ticket-item">
+                                    <div class="ticket-title">
+                                        <h4>Tidak ada jadwal hari ini</h4>
+                                    </div>
                                 </div>
-                            </div>
                             @endif
-                            @endforeach
                         </div>
                     </div>
                 </div>
